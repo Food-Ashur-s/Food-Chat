@@ -17,7 +17,7 @@ sio.on('connection',socket => {
     // });
 }); 
 
-// Our Nmaespace 
+// Our Namespace 
 const foodChat = sio.of('/food');
 foodChat.on('connection', socket => {
     socket.on('food-talk' , payload => {
