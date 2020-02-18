@@ -1,26 +1,31 @@
 'use strict';
 
-const PORT = process.env.PORT || 3003 ;
-const sio = require('socket.io')(PORT);
+const net = require('net');
+const PORT = process.env.PORT || 3001;
+const server = net.createServer();
 
+let socketPool = {};
 
-sio.on('connection',socket => {
-    console.log('connected On ID No.' , socket.id);
+server.on('connection', (socket) => {
+  const id = `Socket-${Math.random()}`;
+  socketPool[id] = socket;
+  socket.on('data', (buffer) => dispatchEvent(buffer));
+  socket.on('end', () => delete socketPool[id]);
+  socket.on('error', (e) => console.error('Socket ERR:', e));
+});
 
-    socket.on('talk' , payload => {
-        // console.log(payload);
-        sio.emit('message', payload);
-    });
+function dispatchEvent(buffer) {
+  let message = JSON.parse(buffer.toString().trim());
+  broadcast(message);
+}
 
-    // socket.on('disconnected', () => {
-    //     console.log(socket.id);
-    // });
-}); 
+function broadcast(message) {
+  let payload = JSON.stringify(message);
+  for (let socket in socketPool) {
+    socketPool[socket].write(payload);
+  }
+}
 
-// Our Namespace 
-const foodChat = sio.of('/food');
-foodChat.on('connection', socket => {
-    socket.on('food-talk' , payload => {
-        foodChat.emit('message',payload);
-    });
+server.listen(PORT, () => {
+  console.log(`listening on the coolest port: ${PORT}`);
 });
